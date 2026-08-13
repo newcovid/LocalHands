@@ -50,7 +50,7 @@ class Config:
     log_file: str = "./var/logs/ops.log"
     host: str = "127.0.0.1"
     allow_query_token: bool = True
-    sse_ping_interval: int = 15  # SSE keepalive ping seconds (0 = disable); fixes 210204
+    sse_ping_interval: int = 15  # SSE keepalive ping seconds (0 = disable)
     log_max_bytes: int = 5_242_880  # Rotate the audit log past this size (0 = never)
 
     # --- Binary transfer channel (/download, /upload) ---

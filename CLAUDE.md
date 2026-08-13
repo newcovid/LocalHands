@@ -114,7 +114,7 @@ system prompt. Per-tool operational detail stays in the tool description.
 
 The floor `mcp>=2.0` in `pyproject.toml` is load-bearing, not hygiene. 2.x is a rewrite: the
 low-level `Server` takes `on_list_tools` / `on_call_tool` constructor arguments instead of
-decorators, handlers receive `(request_context, params)`, results are no longer auto-wrapped
+decorators, handlers receive `(request_context, params)`, results are not auto-wrapped
 (each handler builds its own `*Result`), and model fields are snake_case. Don't relax it without
 revisiting `create_mcp_server()` and every `Tool` definition.
 

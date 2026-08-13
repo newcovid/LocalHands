@@ -7,16 +7,16 @@ comes up, the tunnel does not, and the agent sees a dead URL.  This module folds
 the tunnel into the daemon's own lifecycle: one command starts both, and the
 tunnel dies with the daemon.
 
-It also removes two footguns that cost real debugging time:
+It also removes two footguns:
 
 * **Proxy environment variables.**  ngrok's free tier refuses to start when
-  ``http_proxy``/``https_proxy`` are set (``ERR_NGROK_9009``), which is why a
-  shell with a proxy configured fails while a clean one works.  ``strip_proxy_env``
-  scrubs them from the child's environment only, leaving the parent untouched.
+  ``http_proxy``/``https_proxy`` are set (``ERR_NGROK_9009``), so a shell with a
+  proxy configured fails while a clean one works.  ``strip_proxy_env`` scrubs
+  them from the child's environment only, leaving the parent untouched.
 * **Guessing the public origin.**  The transfer tools have to hand out absolute
   URLs, but the daemon cannot see its own public hostname.  For ngrok the real
-  URL is read back from the local agent API and used to fill in
-  ``public_base_url`` automatically when it was left blank.
+  URL is read back from the local agent API and fills in ``public_base_url``
+  automatically when it is left blank.
 """
 
 from __future__ import annotations

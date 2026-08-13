@@ -523,10 +523,10 @@ class OperationLogger:
     Writes are flushed immediately to survive crashes.
 
     The log rotates once it grows past ``max_bytes``: the current file is moved
-    to ``<name>.1`` (replacing any previous ``.1``) and a fresh file is started.
+    to ``<name>.1`` (replacing any older ``.1``) and a fresh file is started.
     A single generation is kept deliberately — this is an operational audit
-    trail, not an archive, and an unbounded log was what let the previous file
-    accumulate into noise.  ``max_bytes=0`` disables rotation.
+    trail, not an archive, and an unbounded one accumulates into noise nobody
+    reads.  ``max_bytes=0`` disables rotation.
     """
 
     def __init__(self, log_file: str, max_bytes: int = 5_242_880) -> None:

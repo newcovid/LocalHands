@@ -82,7 +82,7 @@ def create_mcp_server(
 
     Note on the SDK 2.x shape: handlers are constructor arguments rather than
     decorators, they receive ``(request_context, params)``, and return values are
-    no longer auto-wrapped — each handler builds its own Result object.
+    not auto-wrapped — each handler builds its own Result object.
     """
     from mcp.server.lowlevel import Server
     from mcp.types import CallToolRequestParams, CallToolResult, ListToolsResult
@@ -99,7 +99,7 @@ def create_mcp_server(
 
     server = Server(
         SERVER_NAME,
-        version=SERVER_VERSION,  # 1.x reported the SDK's version here instead
+        version=SERVER_VERSION,  # this server's version, not the SDK's
         # Guidance that applies to the whole server rather than to one tool.
         # Clients generally fold this into the system prompt, which reaches the
         # model before it picks a tool — unlike a description, which it only
@@ -134,8 +134,8 @@ def create_app(config: Config) -> Any:
     from starlette.responses import JSONResponse
     from starlette.routing import Route
 
-    # SSE keepalive — prevents idle-connection drops through ngrok/proxies
-    # (root cause of intermittent protocol error 210204).
+    # SSE keepalive — prevents idle-connection drops through ngrok/proxies,
+    # which reach the client as protocol error 210204.
     _enable_sse_keepalive(config.sse_ping_interval)
 
     # Shared state
@@ -154,12 +154,11 @@ def create_app(config: Config) -> Any:
     # Runs alongside SSE rather than replacing it: clients already registered
     # against /sse keep working while new ones can be pointed at /mcp.
     #
-    # It also sidesteps the failure that SSE keeps hitting here. SSE needs one
-    # connection held open indefinitely, and an idle one gets dropped somewhere
-    # in the tunnel; the client then reuses a dead pooled session and the call
-    # stalls (protocol error 210204, currently mitigated by a keepalive ping).
-    # Streamable HTTP uses short request-scoped exchanges, so there is no idle
-    # connection to lose.
+    # It also sidesteps SSE's failure mode here: SSE needs one connection held
+    # open indefinitely, an idle one gets dropped somewhere in the tunnel, and
+    # the client then reuses a dead pooled session and stalls (protocol error
+    # 210204, which the keepalive above only mitigates). Streamable HTTP uses
+    # short request-scoped exchanges, so there is no idle connection to lose.
     http_manager: StreamableHTTPSessionManager | None = None
     if "streamable_http" in config.transports:
         # DNS-rebinding protection defaults to the local Host header, which this
@@ -305,25 +304,25 @@ def create_app(config: Config) -> Any:
 
 
 # --------------------------------------------------------------------------- #
-#  SSE Keepalive (fix for intermittent protocol error 210204)
+#  SSE Keepalive
 # --------------------------------------------------------------------------- #
 
 def _enable_sse_keepalive(ping_interval: int) -> None:
     """Patch the MCP SDK SSE response to emit periodic keepalive pings.
 
-    Root cause of 210204: the MCP SDK builds sse_starlette.EventSourceResponse
-    without ``ping`` (sse_starlette defaults to None = no heartbeat). With no
-    traffic between calls, intermediaries (ngrok, reverse proxies, NAT) silently
-    close the idle SSE connection. The Aily MCP hub reuses the now-dead pooled
-    session, the response never arrives, and the hub surfaces protocol error
-    210204. Retrying establishes a fresh session and succeeds — the classic
-    first-call-after-idle flake.
+    The SDK builds ``sse_starlette.EventSourceResponse`` without ``ping``, and
+    sse_starlette defaults that to None — no heartbeat at all. With no traffic
+    between calls, intermediaries (ngrok, reverse proxies, NAT) silently close
+    the idle SSE connection; the client then reuses the dead pooled session, the
+    response never arrives, and an Aily hub reports protocol error 210204. A
+    retry opens a fresh session and succeeds, which is what makes the failure
+    look intermittent rather than reproducible.
 
-    Fix: force every SSE response to send a keepalive comment every
-    ``ping_interval`` seconds. Keeps the connection alive through ngrok/proxies
-    and lets the server detect a dead client fast (ping write fails -> response
-    ends -> session cleaned up -> hub gets a clean 404 instead of a silent
-    stall). Idempotent; ``ping_interval <= 0`` leaves behaviour unchanged.
+    Forcing a keepalive comment every ``ping_interval`` seconds holds the
+    connection open through those intermediaries, and lets the server notice a
+    dead client quickly: the ping write fails, the response ends, the session is
+    cleaned up, and the client gets a clean 404 instead of a silent stall.
+    Idempotent; ``ping_interval <= 0`` leaves behaviour unchanged.
     """
     if ping_interval <= 0:
         logger.info("SSE keepalive disabled (sse_ping_interval=0).")
@@ -344,7 +343,7 @@ def _enable_sse_keepalive(ping_interval: int) -> None:
 
     _sse_mod.EventSourceResponse = _KeepaliveESR  # type: ignore[assignment]
     _sse_mod._localhands_keepalive_patched = True  # type: ignore[attr-defined]
-    logger.info("SSE keepalive enabled: ping every %ds (fix for 210204).", ping_interval)
+    logger.info("SSE keepalive enabled: ping every %ds.", ping_interval)
 
 
 # --------------------------------------------------------------------------- #
@@ -487,12 +486,12 @@ def force_utf8_io() -> None:
     On Windows, a redirected stdout (``Start-Process -RedirectStandardOutput``,
     ``> file``, a service wrapper) is opened with the *locale* encoding — GBK on
     a Chinese system.  The self-check banner contains ``⚠️``/``✅``/``❌``, which
-    GBK cannot encode, so ``print()`` raised ``UnicodeEncodeError`` and the
-    daemon died before it ever bound the port.  ``scripts/restart.ps1`` still
-    reported success because it only checked that the process had been spawned.
+    GBK cannot encode, so an unguarded ``print()`` raises ``UnicodeEncodeError``
+    and kills the daemon before it ever binds the port — a failure that looks
+    like "it started and then nothing answered".
 
-    Reconfiguring with ``errors="replace"`` also guarantees that no future
-    non-ASCII log line (Chinese paths, tool output) can crash the daemon.
+    Reconfiguring with ``errors="replace"`` also guarantees that no non-ASCII
+    log line (Chinese paths, tool output) can crash the daemon.
 
     ``line_buffering`` is forced on for the same reason: a redirected stream is
     block-buffered, so the runtime log trails reality by up to 8 KB and looks

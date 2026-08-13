@@ -44,9 +44,8 @@ def _process_group_kwargs() -> dict[str, Any]:
 def _kill_process_tree(proc: subprocess.Popen[bytes]) -> None:
     """Terminate a process and everything it spawned.
 
-    Killing only the direct child leaves grandchildren running, still holding
-    the inherited stdout pipe — which is exactly what made the timeout
-    ineffective.
+    Killing only the direct child leaves grandchildren running and still holding
+    the inherited stdout pipe, which makes the timeout ineffective.
     """
     if sys.platform == "win32":
         try:
@@ -159,10 +158,10 @@ class ShellProvider(LocalProvider):
             timed_out = True
             # subprocess.run() would only kill the shell here. Under shell=True
             # the real work runs in a grandchild that inherited the stdout pipe,
-            # so communicate() then blocks until *that* finishes — a 1s timeout
-            # against a 5s command returned after 5s, and a runaway command held
-            # a worker thread indefinitely. Killing the whole tree is what makes
-            # the timeout an actual bound.
+            # so communicate() blocks until *that* finishes: a 1s timeout on a
+            # 5s command returns after 5s, and a runaway command holds a worker
+            # thread indefinitely. Killing the whole tree is what makes the
+            # timeout an actual bound.
             _kill_process_tree(proc)
             try:
                 raw_out, raw_err = proc.communicate(timeout=5)

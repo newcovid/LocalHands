@@ -58,7 +58,7 @@ you choose.
 ## Why it exists
 
 `claude mcp serve` already exposes a local machine over MCP, and for many people it is
-enough. LocalHands was built after measuring three things that got in the way:
+enough. LocalHands trades breadth for a narrower, guarded surface:
 
 | | `claude mcp serve` | LocalHands |
 |---|---|---|
@@ -633,7 +633,7 @@ register it alongside the local providers.
 
 The floor `mcp>=2.0` is load-bearing, not hygiene. 2.x is a rewrite of the 1.x API, not a
 compatible bump: the low-level `Server` takes `on_*` handlers instead of decorators,
-results are no longer auto-wrapped, and model fields are snake_case.
+results are not auto-wrapped, and model fields are snake_case.
 
 ---
 
