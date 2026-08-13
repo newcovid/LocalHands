@@ -136,6 +136,13 @@ trash_dir: "./var/trash"
 # turns silent mojibake — which the model would reason about at full token price
 # — into an actionable error.
 #
+# Whether this machine runs such a driver:
+#   auto - sample the allowed paths at startup and decide from the evidence
+#   on   - assume it does, without paying for the sampling scan
+#   off  - assume it does not; scan_encrypted and the DLP guidance are withheld
+# Most machines have none, and on those the whole subject is context noise.
+dlp_mode: "auto"
+
 # Magic-byte prefixes, in hex. Empty uses the built-in defaults.
 encrypted_file_markers: []
 
