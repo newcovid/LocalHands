@@ -1,0 +1,33 @@
+# --------------------------------------------------------------------------- #
+#  LocalHands
+# --------------------------------------------------------------------------- #
+
+# Real configuration: holds the auth token and machine-specific paths.
+# Only config.example.yaml belongs in version control.
+config.yaml
+
+# All runtime state — logs, recycle bin, staged transfers.
+var/
+
+# Restart-script scratch output.
+*.flag
+
+# Ad-hoc backups: use version control instead.
+*.bak
+*.orig
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Editors
+.idea/
+.vscode/

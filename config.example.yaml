@@ -1,0 +1,198 @@
+# LocalHands — configuration template
+# --------------------------------------------------------------------
+# Copy to config.yaml and adjust. That copy is gitignored, because it
+# holds the auth token and machine-specific paths.
+#
+#   python -m localhands --config config.yaml
+#   python -m localhands --config config.yaml --check   # validate only
+# --------------------------------------------------------------------
+
+# ====================================================================
+#  Authentication
+# ====================================================================
+
+# The single credential guarding every MCP tool, including run_bash. Treat it
+# as a shell password, because that is what it is.
+#   python -c "import secrets; print(secrets.token_urlsafe(32))"
+auth_token: "change-me-to-a-strong-random-token-please-32chars"
+
+# Accept ?token=<token> in the URL as well as an Authorization header. Required
+# for clients that can only be given a URL (Feishu Aily among them).
+# Registration URL: https://<your-domain>/mcp?token=<auth_token>
+allow_query_token: true
+
+# ====================================================================
+#  Path whitelist
+# ====================================================================
+
+# Every file tool is confined to these directories. Paths are fully resolved —
+# symlinks, junctions and ../ are followed — before the prefix check, so a
+# symlink pointing outside is rejected rather than followed.
+#
+# Environment variables are expanded, so "%TEMP%" tracks whatever this machine
+# has TEMP set to rather than hard-coding a path.
+allowed_paths:
+  - "C:/Users/you/projects"
+  - "%TEMP%"
+
+# ====================================================================
+#  HTTP server
+# ====================================================================
+
+host: "127.0.0.1" # Bind address. Keep it on loopback and put a tunnel in front.
+port: 8765
+
+# ====================================================================
+#  MCP transports
+# ====================================================================
+
+# Both can run at once, so a client already registered against /sse keeps
+# working while new ones are pointed at /mcp.
+#   sse             -> GET /sse + POST /messages/   (deprecated in the spec)
+#   streamable_http -> GET|POST|DELETE /mcp         (current)
+#
+# Prefer streamable_http for new registrations: SSE holds one connection open
+# indefinitely, and tunnels drop idle connections, after which the client reuses
+# a dead session and the call stalls.
+transports: ["sse", "streamable_http"]
+
+# Streamable HTTP request body cap. Binary payloads should go through /upload
+# rather than being inlined into a tool argument, so this rarely needs raising.
+max_request_body_size: 4194304 # 4 MiB
+
+# SSE keepalive ping, in seconds. Without it an idle SSE connection is dropped
+# by the tunnel and the client stalls on a stale session. 0 disables.
+sse_ping_interval: 15
+
+# ====================================================================
+#  Limits
+# ====================================================================
+
+max_file_size: 1048576 # Max bytes a single read_file returns (1 MB)
+bash_timeout: 30 # Default run_bash timeout; a call may request up to 2x
+rate_limit: 60 # Requests per minute (also the burst capacity)
+
+# ====================================================================
+#  Binary transfer channel (/download, /upload)
+# ====================================================================
+
+# Bytes moved over these endpoints never enter the model's context, so
+# transferring a file costs a few tokens instead of hundreds of thousands.
+# prepare_download / prepare_upload mint one-time URLs pointing here.
+
+# Public origin the agent can reach. The daemon sits behind a tunnel and cannot
+# discover this itself; without it the transfer tools can only return a path.
+# Leave empty when the tunnel is managed below — the real URL is filled in
+# automatically from the tunnel agent.
+public_base_url: ""
+
+transfer_ticket_ttl: 300 # Seconds a one-time transfer ticket stays valid
+upload_max_bytes: 104857600 # Largest accepted upload body (100 MB)
+
+# ====================================================================
+#  Outbound downloads (download_file tool)
+# ====================================================================
+
+download_allowed_schemes: ["https", "http"]
+
+# Empty means any host is allowed, but loopback/link-local/private addresses
+# are still refused — without that check a remote agent could use this tool to
+# probe the local network. Listing a host here also exempts it from that check.
+download_allowed_hosts: []
+
+download_max_bytes: 52428800 # 50 MB
+download_timeout: 60
+
+# ====================================================================
+#  Shell guard rail
+# ====================================================================
+
+# Refuses a short list of irreversible commands: whole-disk operations,
+# recursive deletion of a drive root, shutdown, piping a download into a shell.
+#
+# This is NOT a sandbox — anything with shell access can obfuscate past a regex,
+# and run_bash is arbitrary code execution by design. It guards against the
+# failure that actually happens: a cloud model acting on a misread instruction
+# or an injected one, emitting a single unrecoverable command.
+command_guard_enabled: true
+
+# Extra deny regexes, appended to the built-in list.
+denied_command_patterns: []
+
+# ====================================================================
+#  Destructive file operations
+# ====================================================================
+
+# delete_path moves files here instead of unlinking them, and returns the
+# location so they can be recovered. Empty makes deletes permanent.
+trash_dir: "./var/trash"
+
+# ====================================================================
+#  DLP / transparent encryption
+# ====================================================================
+
+# Some corporate endpoints run a transparent-encryption driver: files written by
+# protected applications come back to this daemon as ciphertext. Detecting that
+# turns silent mojibake — which the model would reason about at full token price
+# — into an actionable error.
+#
+# Magic-byte prefixes, in hex. Empty uses the built-in defaults.
+encrypted_file_markers: []
+
+# Where protected applications should export plaintext. Copying an encrypted
+# file never decrypts it, but such drivers typically exclude %TEMP%, so a
+# "Save As" from the owning application into this directory produces readable
+# bytes. Empty defaults to %TEMP%/localhands_staging.
+staging_dir: ""
+
+# ====================================================================
+#  Images
+# ====================================================================
+
+# Vision-token cost scales with resolution, so read_image and screenshot
+# downscale before handing an image over.
+image_max_edge: 1568
+image_jpeg_quality: 85
+max_image_bytes: 1572864 # Processed images are re-encoded until they fit
+
+# screenshot sends the local screen to a cloud service. Set false to remove it.
+screenshot_enabled: true
+
+# ====================================================================
+#  Search
+# ====================================================================
+
+# Explicit ripgrep binary. Empty probes PATH, then known vendored copies, then
+# falls back to a pure-Python matcher.
+ripgrep_path: ""
+
+# ====================================================================
+#  Logging
+# ====================================================================
+
+log_file: "./var/logs/ops.log" # JSONL audit record of every tool invocation
+log_max_bytes: 5242880 # Rotate to <log_file>.1 past this size; 0 disables
+
+# ====================================================================
+#  Public tunnel, started and supervised by the daemon
+# ====================================================================
+
+# With this enabled, one command brings up the daemon and its tunnel, and the
+# tunnel dies with the daemon. Override per run with --tunnel / --no-tunnel.
+tunnel:
+  enabled: false
+  provider: ngrok # ngrok | cloudflared | custom
+  executable: "" # Empty = look on PATH
+  domain: "" # Reserved domain, if your plan has one
+  extra_args: []
+
+  # provider: custom takes a full command; {port} is substituted.
+  command: []
+
+  # ngrok's free tier aborts with ERR_NGROK_9009 when http_proxy/https_proxy are
+  # set. This strips them from the tunnel child process only, leaving the parent
+  # environment and every other tool untouched.
+  strip_proxy_env: true
+
+  log_file: "./var/logs/tunnel.log"
+  startup_timeout: 30
