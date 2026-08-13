@@ -144,7 +144,7 @@ class Config:
     # ------------------------------------------------------------------ #
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Config":
+    def from_dict(cls, data: dict[str, Any]) -> Config:
         """Build a Config from a raw dict, applying defaults and validation."""
         if not isinstance(data, dict):
             raise ConfigError("Configuration root must be a mapping (dict).")
@@ -281,7 +281,7 @@ class Config:
         )
 
     @classmethod
-    def from_yaml(cls, path: str | Path) -> "Config":
+    def from_yaml(cls, path: str | Path) -> Config:
         """Load configuration from a YAML file."""
         yaml_path = Path(path).expanduser()
         if not yaml_path.is_file():

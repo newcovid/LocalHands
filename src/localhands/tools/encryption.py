@@ -136,11 +136,9 @@ def probe_for_encryption(
     for root in real_roots:
         likely: list[Path] = []
         other: list[Path] = []
-        dirs_seen = 0
 
-        for dirpath, dirnames, filenames in os.walk(root):
+        for dirs_seen, (dirpath, dirnames, filenames) in enumerate(os.walk(root), start=1):
             dirnames[:] = [d for d in dirnames if not d.startswith(".")]
-            dirs_seen += 1
             if dirs_seen > _MAX_DIRS or len(likely) >= per_root:
                 break
             for filename in filenames:

@@ -23,15 +23,18 @@ effects are guarded by ``if __name__ == "__main__"``.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import logging
-import os
 import socket
 import sys
+from collections.abc import AsyncIterator, Awaitable, Callable
 from pathlib import Path
 from typing import Any
 
 import uvicorn
 
+from . import SERVER_NAME
+from . import __version__ as SERVER_VERSION
 from .config import Config, ConfigError
 from .security import (
     BearerAuthMiddleware,
@@ -50,9 +53,14 @@ logger = logging.getLogger("localhands")
 #  Constants
 # --------------------------------------------------------------------------- #
 
-from . import SERVER_NAME, __version__ as SERVER_VERSION
-
 DEFAULT_CONFIG_PATH = "config.yaml"
+
+# ASGI callable signatures, kept here so the handlers below can be annotated
+# without importing Starlette at module scope (it is imported lazily inside
+# create_app, so that `--check` does not pay for the web stack).
+Scope = dict[str, Any]
+Receive = Callable[[], Awaitable[dict[str, Any]]]
+Send = Callable[[dict[str, Any]], Awaitable[None]]
 
 
 # --------------------------------------------------------------------------- #
@@ -64,7 +72,7 @@ def create_mcp_server(
     path_guard: PathGuard,
     op_logger: OperationLogger,
     tickets: TransferTicketStore,
-):
+) -> tuple[Any, ToolHandler]:
     """Create an MCP Server instance with tools registered.
 
     Returns:
@@ -119,8 +127,6 @@ def create_app(config: Config) -> Any:
     Mount) to avoid root_path prefix pollution — Mount("/sse") would cause
     the SseServerTransport to advertise /sse/messages/ as the POST URL.
     """
-    import contextlib
-
     from mcp.server.sse import SseServerTransport
     from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
     from mcp.server.transport_security import TransportSecuritySettings
@@ -182,7 +188,7 @@ def create_app(config: Config) -> Any:
     # ------------------------------------------------------------------ #
     #  Starlette app for health and root endpoints only
     # ------------------------------------------------------------------ #
-    async def health_endpoint(request):
+    async def health_endpoint(request: Any) -> JSONResponse:
         """Health check — returns 200 with server status."""
         # Asked of the live handler, not a static list: some tools are withheld
         # depending on what this machine has, so a hard-coded list would lie.
@@ -196,7 +202,7 @@ def create_app(config: Config) -> Any:
             "dlp_handling": handler.dlp_active,
         })
 
-    async def root_endpoint(request):
+    async def root_endpoint(request: Any) -> JSONResponse:
         """Root endpoint — basic server info."""
         return JSONResponse({
             "server": SERVER_NAME,
@@ -214,7 +220,7 @@ def create_app(config: Config) -> Any:
         })
 
     @contextlib.asynccontextmanager
-    async def lifespan(_app):
+    async def lifespan(_app: Any) -> AsyncIterator[None]:
         """Own the Streamable HTTP session manager's task group.
 
         ``StreamableHTTPSessionManager.run()`` must be active for the whole
@@ -240,7 +246,7 @@ def create_app(config: Config) -> Any:
     # ------------------------------------------------------------------ #
     #  Custom ASGI router — handles SSE + POST, delegates rest to Starlette
     # ------------------------------------------------------------------ #
-    async def asgi_router(scope: dict, receive, send) -> None:
+    async def asgi_router(scope: Scope, receive: Receive, send: Send) -> None:
         """Route requests: SSE/POST handled inline, everything else → Starlette."""
         if scope["type"] == "http":
             path = scope.get("path", "")
@@ -354,8 +360,11 @@ def run_self_check(config: Config) -> bool:
     errors: list[str] = []
     warnings: list[str] = []
 
-    # 1. Check Python version ≥ 3.10
-    if sys.version_info < (3, 10):
+    # 1. Check Python version ≥ 3.10.
+    # noqa UP036: ruff calls this dead because the project targets py310, but
+    # nothing stops an operator invoking the daemon with an older interpreter.
+    # A named requirement beats whatever SyntaxError happens to surface first.
+    if sys.version_info < (3, 10):  # noqa: UP036
         errors.append(f"Python 3.10+ required, got {sys.version_info.major}.{sys.version_info.minor}")
 
     # 2. Check required Python packages
@@ -444,7 +453,7 @@ def run_self_check(config: Config) -> bool:
     print(f"   Max read:   {config.max_file_size:,} bytes")
     print(f"   Bash timeout: {config.bash_timeout}s")
     print(f"   Log file:   {config.log_file}")
-    print(f"   Allowed paths:")
+    print("   Allowed paths:")
     for p in config.resolved_allowed_paths:
         print(f"     • {p}")
     print("\n" + "=" * 60 + "\n")
@@ -490,14 +499,12 @@ def force_utf8_io() -> None:
     empty exactly when you are trying to diagnose a startup failure.
     """
     for stream in (sys.stdout, sys.stderr):
-        try:
+        # Suppressed, not handled: a stream that is not a reconfigurable
+        # TextIOWrapper (already wrapped, or detached) leaves nothing to do.
+        with contextlib.suppress(AttributeError, OSError, ValueError):
             stream.reconfigure(  # type: ignore[union-attr]
                 encoding="utf-8", errors="replace", line_buffering=True
             )
-        except (AttributeError, OSError, ValueError):
-            # Stream is not a reconfigurable TextIOWrapper (already wrapped,
-            # or detached).  Nothing to do — best effort only.
-            pass
 
 
 # --------------------------------------------------------------------------- #

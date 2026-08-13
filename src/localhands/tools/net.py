@@ -31,7 +31,6 @@ import httpx
 from mcp.types import Tool
 
 from ..security import PathGuardError
-
 from .base import LocalProvider, err, ok
 
 logger = logging.getLogger(__name__)

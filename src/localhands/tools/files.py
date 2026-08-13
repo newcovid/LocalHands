@@ -13,7 +13,6 @@ from typing import Any
 from mcp.types import Tool
 
 from ..security import PathGuardError
-
 from .base import LocalProvider, err, ok
 from .encryption import encrypted_error, head_is_encrypted, parse_markers, staging_dir
 

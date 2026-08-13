@@ -66,7 +66,7 @@ class TunnelConfig:
     startup_timeout: int = 30
 
     @classmethod
-    def from_dict(cls, data: Any) -> "TunnelConfig":
+    def from_dict(cls, data: Any) -> TunnelConfig:
         """Build from the ``tunnel:`` block of the YAML config."""
         if not data:
             return cls()

@@ -20,14 +20,14 @@ import mimetypes
 import secrets
 import tempfile
 import time
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 from mcp.types import Tool
 from PIL import Image, ImageGrab, ImageOps, UnidentifiedImageError
 
 from ..security import PathGuardError
-
 from .base import LocalProvider, err, ok
 
 logger = logging.getLogger(__name__)

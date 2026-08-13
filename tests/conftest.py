@@ -10,9 +10,10 @@ code under test, and a live daemon may already own port 8765.
 from __future__ import annotations
 
 import json
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Sequence
+from typing import Any
 
 import pytest
 

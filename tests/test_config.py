@@ -13,9 +13,8 @@ from typing import Any
 
 import pytest
 
-from localhands.config import Config, ConfigError
-
 from conftest import TEST_TOKEN
+from localhands.config import Config, ConfigError
 
 
 def _minimal(tmp_path: Path, **overrides: Any) -> dict[str, Any]:

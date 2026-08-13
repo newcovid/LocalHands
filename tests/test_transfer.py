@@ -9,8 +9,9 @@ call: no socket is opened and no tunnel is involved.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 from urllib.parse import quote
 
 import pytest
@@ -480,7 +481,7 @@ class TestPrepareThenTransfer:
         http_scope: Any,
         run_asgi: Any,
     ) -> None:
-        payload = "报告内容\n".encode("utf-8")
+        payload = "报告内容\n".encode()
         target = allowed_root / CHINESE_NAME
         target.write_bytes(payload)
 

@@ -16,7 +16,6 @@ from typing import Any
 from mcp.types import Tool
 
 from ..security import PathGuardError
-
 from .base import (
     MAX_GLOB_RESULTS,
     MAX_GREP_RESULTS,

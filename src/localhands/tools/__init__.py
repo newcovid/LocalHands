@@ -27,15 +27,14 @@ from mcp.types import CallToolResult, TextContent, Tool
 
 from ..config import Config
 from ..security import OperationLogger, PathGuard, TransferTicketStore
-
 from . import instructions as _instructions
 from .base import LocalProvider, ProviderContext, ToolProvider, UnknownToolError
-from .encryption import DEFAULT_MARKERS, parse_markers, probe_for_encryption
-from .policy import annotate
 from .desktop import DesktopProvider
+from .encryption import DEFAULT_MARKERS, parse_markers, probe_for_encryption
 from .files import FileProvider
 from .media import MediaProvider
 from .net import NetProvider
+from .policy import annotate
 from .search import SearchProvider
 from .shell import ShellProvider
 from .xfer import TransferProvider

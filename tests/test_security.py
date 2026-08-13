@@ -8,11 +8,13 @@ reach, so the assertions here are about refusals as much as about successes.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import pytest
 
+from conftest import TEST_TOKEN
 from localhands.config import Config
 from localhands.security import (
     BearerAuthMiddleware,
@@ -23,9 +25,6 @@ from localhands.security import (
     TransferTicketError,
     TransferTicketStore,
 )
-
-from conftest import TEST_TOKEN
-
 
 # ====================================================================== #
 #  PathGuard — the whitelist boundary

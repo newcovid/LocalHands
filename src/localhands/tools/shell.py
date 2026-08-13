@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 import signal
@@ -12,7 +13,6 @@ from typing import Any
 from mcp.types import Tool
 
 from ..security import CommandBlocked, CommandGuard, PathGuardError
-
 from .base import BASH_OUTPUT_CAP, LocalProvider, ProviderContext, err, ok
 
 logger = logging.getLogger(__name__)
@@ -65,10 +65,8 @@ def _kill_process_tree(proc: subprocess.Popen[bytes]) -> None:
         except (OSError, AttributeError):
             pass
 
-    try:
+    with contextlib.suppress(OSError):
         proc.kill()
-    except OSError:
-        pass
 
 
 class ShellProvider(LocalProvider):

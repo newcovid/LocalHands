@@ -609,14 +609,11 @@ in-process from `tmp_path`, and the real `config.yaml` is deliberately never rea
 ```
 
 Lint rules are configured in `pyproject.toml` (ruff is not a declared dependency — install it
-separately):
+separately). The tree is clean; please keep it that way:
 
 ```powershell
 ruff check .
 ```
-
-There is a backlog of ~38 findings, almost all missing annotations on ASGI callbacks in
-`daemon.py`. Please don't add new ones.
 
 ### Adding a tool
 
@@ -704,7 +701,7 @@ Issues and pull requests are welcome at
 Before opening a PR:
 
 - `.venv\Scripts\python.exe -m pytest tests/ -q` passes
-- `ruff check .` reports nothing new against your changes
+- `ruff check .` is clean
 - New tools carry a `POLICIES` entry and a test that goes through the real dispatcher
 
 Please do not include machine-specific paths, tokens, or tunnel domains in a patch —

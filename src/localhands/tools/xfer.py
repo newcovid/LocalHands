@@ -9,8 +9,7 @@ from typing import Any
 from mcp.types import Tool
 
 from ..security import PathGuardError
-
-from .base import (LocalProvider)
+from .base import LocalProvider
 
 logger = logging.getLogger(__name__)
 

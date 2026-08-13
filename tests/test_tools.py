@@ -11,8 +11,9 @@ from __future__ import annotations
 import json
 import sys
 import time
+from collections.abc import Awaitable, Callable, Sequence
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Sequence
+from typing import Any
 
 import pytest
 

@@ -585,14 +585,12 @@ var/                      运行期数据——日志、回收站（已 gitignor
 .venv\Scripts\python.exe -m pytest tests/ -k "encrypted" -q               # 按名称筛选
 ```
 
-Lint 规则写在 `pyproject.toml` 里（ruff 不是声明的依赖，需另行安装）：
+Lint 规则写在 `pyproject.toml` 里（ruff 不是声明的依赖，需另行安装）。
+当前代码库零告警，请保持：
 
 ```powershell
 ruff check .
 ```
-
-目前有约 38 条历史遗留告警，几乎全部是 `daemon.py` 中 ASGI 回调缺少类型标注。
-请不要新增。
 
 ### 新增一个工具
 
@@ -676,7 +674,7 @@ ngrok 免费版会对"看起来像浏览器"的请求返回一个中间页（`ER
 提 PR 之前请确认：
 
 - `.venv\Scripts\python.exe -m pytest tests/ -q` 全部通过
-- `ruff check .` 针对你的改动没有新增告警
+- `ruff check .` 无告警
 - 新增工具带有对应的 `POLICIES` 条目，以及一个走真实分发器的测试
 
 请不要在补丁中带入机器专属路径、令牌或隧道域名——`config.yaml` 与 `var/`
